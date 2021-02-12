@@ -1,3 +1,3 @@
-include ':limehdtest'
+include ':lib'
 include ':demo'
 rootProject.name = "LimeHDTest"
