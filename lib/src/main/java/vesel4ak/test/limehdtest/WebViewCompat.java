@@ -2,20 +2,18 @@ package vesel4ak.test.limehdtest;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Canvas;
-import android.media.MediaPlayer;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebChromeClient;
 import android.webkit.WebView;
 
 import androidx.annotation.NonNull;
 
+public class WebViewCompat extends WebView implements WebViewInterface {
 
-public class WebViewCompat extends WebView {
-
-    MediaPlayer mediaPlayer;
-    Listener listener;
+    Player player;
+    WebViewCallback webViewCallback;
 
     public WebViewCompat(@NonNull Context context) {
         super(context);
@@ -26,84 +24,77 @@ public class WebViewCompat extends WebView {
         initialization();
     }
 
-
-
     @SuppressLint("SetJavaScriptEnabled")
     public void initialization() {
+        player = new Player(getContext());
         getSettings().setJavaScriptEnabled(true);
         setWebChromeClient(new WebChromeClient());
         loadUrl("file:///android_asset/lime_hd.html");
         playMusic();
     }
 
+    @Override
     public void playAndShow() {
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer.create(getContext(), R.raw.music);
-        }
+        showWebView();
         try {
-            mediaPlayer.start();
-            if (listener != null) {
-                listener.onSuccessPlay();
-            }
+            player.playMusic();
+            onSuccessPlay();
         } catch (Exception e) {
-            if (listener != null) {
-                listener.onFailurePlay();
-            }
+            onFailurePlay();
         }
-        setVisibility(View.VISIBLE);
     }
 
+    @Override
     public void stopAndHide() {
         setVisibility(View.GONE);
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-        }
+        player.stopMusic();
     }
 
+    @Override
     public void playMusic() {
-        mediaPlayer = MediaPlayer.create(getContext(), R.raw.music);
-        mediaPlayer.setLooping(true);
         try {
-            mediaPlayer.start();
-            if (listener != null) {
-                listener.onSuccessPlay();
-            }
+            player.playMusic();
+            onSuccessPlay();
         } catch (Exception e) {
-            if (listener != null) {
-                listener.onFailurePlay();
-            }
+            onFailurePlay();
         }
     }
 
+    @Override
     public void stopMusic() {
-        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-        }
+        player.stopMusic();
     }
 
+    @Override
     public void seekToBegin() {
-        if (mediaPlayer != null) {
-            mediaPlayer.seekTo(0);
-        }
+        player.seekToBegin();
     }
 
+    @Override
     public void hide() {
         setVisibility(View.GONE);
     }
 
+    @Override
     public void show() {
+        showWebView();
+    }
+
+
+    private void showWebView() {
         try {
             setVisibility(View.VISIBLE);
-            if (listener!=null){
-                listener.onSuccessShow();
+            if (webViewCallback != null) {
+                webViewCallback.onSuccessShow();
             }
-        }catch (Exception e){
-            if (listener!=null){
-                listener.onFailureShow();
+        } catch (Exception e) {
+            if (webViewCallback != null) {
+                webViewCallback.onFailureShow();
             }
         }
     }
 
+    @Override
     public void destroyWebView() {
         clearHistory();
         clearCache(true);
@@ -112,52 +103,42 @@ public class WebViewCompat extends WebView {
         destroy();
     }
 
+    public WebViewInterface getWebViewInterface() {
+        return this;
+    }
+
     @Override
     public void destroy() {
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
         super.destroy();
+        player.destroy();
     }
 
+    @Override
     public void setMusicLoop(boolean loop) {
-        if (mediaPlayer != null) {
-            mediaPlayer.setLooping(loop);
+        if (player != null) {
+            player.setLooping(loop);
         }
     }
 
-
-    public void loadHtml(final String html) {
-        loadHtml(html, null);
+    @Override
+    public void reloadWebView() {
+        reload();
     }
 
-
-    public void loadHtml(final String html, final String baseUrl) {
-        loadHtml(html, baseUrl, null);
+    public void setWebViewCallback(WebViewCallback listener) {
+        webViewCallback = listener;
     }
 
-
-    public void loadHtml(final String html, final String baseUrl, final String historyUrl) {
-        loadHtml(html, baseUrl, historyUrl, "utf-8");
+    private void onFailurePlay() {
+        if (webViewCallback != null) {
+            webViewCallback.onFailurePlay();
+        }
     }
 
-
-    public void loadHtml(final String html, final String baseUrl, final String historyUrl, final String encoding) {
-        loadDataWithBaseURL(baseUrl, html, "text/html", encoding, historyUrl);
+    private void onSuccessPlay() {
+        if (webViewCallback != null) {
+            webViewCallback.onSuccessPlay();
+        }
     }
 
-    public void setListener(Listener listener) {
-        this.listener = listener;
-    }
-
-    public interface Listener {
-        void onSuccessShow();
-
-        void onFailureShow();
-
-        void onSuccessPlay();
-
-        void onFailurePlay();
-    }
 }
